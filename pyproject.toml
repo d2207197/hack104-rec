@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "hack104_rec"
+version = "0.1.0"
+description = ""
+authors = ["顏孜羲 <joseph.yen@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "*"
+carriage = "^0.4.4"
+ipykernel = "^4.8"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"

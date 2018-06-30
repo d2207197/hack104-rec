@@ -1,0 +1,482 @@
+[[package]]
+name = "appnope"
+version = "0.1.0"
+description = "Disable App Nap on OS X 10.9"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[package.requirements]
+platform = "darwin"
+[[package]]
+name = "atomicwrites"
+version = "1.1.5"
+description = "Atomic file writes."
+category = "dev"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[[package]]
+name = "attrs"
+version = "18.1.0"
+description = "Classes Without Boilerplate"
+category = "dev"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[[package]]
+name = "backcall"
+version = "0.1.0"
+description = "Specifications for callback functions passed in to an API"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[[package]]
+name = "carriage"
+version = "0.4.4"
+description = "Enhanced collection classes for programming fluently"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.dependencies]
+tabulate = "*"
+[[package]]
+name = "colorama"
+version = "0.3.9"
+description = "Cross-platform colored terminal text."
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[package.requirements]
+platform = "win32"
+[[package]]
+name = "decorator"
+version = "4.3.0"
+description = "Better living through Python with decorators"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "All"
+
+[[package]]
+name = "enum34"
+version = "1.1.6"
+description = "Python 3.4 Enum backported to 3.3, 3.2, 3.1, 2.7, 2.6, 2.5, and 2.4"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[package.requirements]
+python = ">=2.7 <2.8 || >=3.3 <3.4"
+[[package]]
+name = "funcsigs"
+version = "1.0.2"
+description = "Python function signatures from PEP362 for Python 2.6, 2.7 and 3.2+"
+category = "dev"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[package.dependencies]
+ordereddict = "*"
+[package.requirements]
+python = "<3.0"
+[[package]]
+name = "ipykernel"
+version = "4.8.2"
+description = "IPython Kernel for Jupyter"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "Linux"
+
+[package.dependencies]
+ipython = ">=4.0.0"
+traitlets = ">=4.1.0"
+jupyter-client = "*"
+tornado = ">=4.0"
+[[package]]
+name = "ipython"
+version = "6.4.0"
+description = "IPython: Productive Interactive Computing"
+category = "main"
+optional = false
+python-versions = ">=3.3"
+platform = "Linux"
+
+[package.dependencies]
+win-unicode-console = ">=0.5"
+colorama = "*"
+appnope = "*"
+pexpect = "*"
+pathlib2 = "*"
+typing = "*"
+backcall = "*"
+pygments = "*"
+prompt-toolkit = ">=1.0.15,<2.0.0"
+traitlets = ">=4.2"
+simplegeneric = ">0.8"
+pickleshare = "*"
+decorator = "*"
+jedi = ">=0.10"
+setuptools = ">=18.5"
+[[package]]
+name = "ipython-genutils"
+version = "0.2.0"
+description = "Vestigial utilities from IPython"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "Linux"
+
+[[package]]
+name = "jedi"
+version = "0.12.1"
+description = "An autocompletion tool for Python that can be used for text editors."
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+platform = "any"
+
+[package.dependencies]
+parso = ">=0.3.0"
+[[package]]
+name = "jupyter-client"
+version = "5.2.3"
+description = "Jupyter protocol implementation and client libraries"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+platform = "Linux"
+
+[package.dependencies]
+jupyter-core = "*"
+python-dateutil = ">=2.1"
+pyzmq = ">=13"
+tornado = ">=4.1"
+traitlets = "*"
+[[package]]
+name = "jupyter-core"
+version = "4.4.0"
+description = "Jupyter core package. A base package on which Jupyter projects rely."
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.dependencies]
+traitlets = "*"
+[[package]]
+name = "more-itertools"
+version = "4.2.0"
+description = "More routines for operating on iterables, beyond itertools"
+category = "dev"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.dependencies]
+six = ">=1.0.0,<2.0.0"
+[[package]]
+name = "ordereddict"
+version = "1.1"
+description = "A drop-in substitute for Py2.7's new collections.OrderedDict that works in Python 2.4-2.6."
+category = "dev"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[package.requirements]
+python = "<2.7"
+[[package]]
+name = "parso"
+version = "0.3.0"
+description = "A Python Parser"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "any"
+
+[[package]]
+name = "pathlib2"
+version = "2.3.2"
+description = "Object-oriented filesystem paths"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.dependencies]
+scandir = "*"
+six = "*"
+[package.requirements]
+python = "2.6.* || 2.7.* || 3.2.* || 3.3.*"
+[[package]]
+name = "pexpect"
+version = "4.6.0"
+description = "Pexpect allows easy control of interactive console applications."
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNIX"
+
+[package.dependencies]
+ptyprocess = ">=0.5"
+[package.requirements]
+platform = "!=win32"
+[[package]]
+name = "pickleshare"
+version = "0.7.4"
+description = "Tiny 'shelve'-like database with concurrency support"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.dependencies]
+pathlib2 = "*"
+[[package]]
+name = "pluggy"
+version = "0.6.0"
+description = "plugin and hook calling mechanisms for python"
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+platform = "unix"
+
+[[package]]
+name = "prompt-toolkit"
+version = "1.0.15"
+description = "Library for building powerful interactive command lines in Python"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.dependencies]
+six = ">=1.9.0"
+wcwidth = "*"
+[[package]]
+name = "ptyprocess"
+version = "0.6.0"
+description = "Run a subprocess in a pseudo terminal"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[[package]]
+name = "py"
+version = "1.5.4"
+description = "library with cross-python path, ini-parsing, io, code, log facilities"
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+platform = "unix"
+
+[[package]]
+name = "pygments"
+version = "2.2.0"
+description = "Pygments is a syntax highlighting package written in Python."
+category = "main"
+optional = false
+python-versions = "*"
+platform = "any"
+
+[[package]]
+name = "pytest"
+version = "3.6.2"
+description = "pytest: simple powerful testing with Python"
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+platform = "unix"
+
+[package.dependencies]
+colorama = "*"
+funcsigs = "*"
+pluggy = ">=0.5,<0.7"
+atomicwrites = ">=1.0"
+more-itertools = ">=4.0.0"
+attrs = ">=17.4.0"
+setuptools = "*"
+six = ">=1.10.0"
+py = ">=1.5.0"
+[[package]]
+name = "python-dateutil"
+version = "2.7.3"
+description = "Extensions to the standard Python datetime module"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+platform = "*"
+
+[package.dependencies]
+six = ">=1.5"
+[[package]]
+name = "pyzmq"
+version = "17.0.0"
+description = "Python bindings for 0MQ"
+category = "main"
+optional = false
+python-versions = ">=2.7,!=3.0*,!=3.1*,!=3.2*"
+platform = "*"
+
+[[package]]
+name = "scandir"
+version = "1.7"
+description = "scandir, a better directory iterator and faster os.walk()"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.requirements]
+python = "<3.5"
+[[package]]
+name = "setuptools"
+version = "39.2.0"
+description = "Easily download, build, install, upgrade, and uninstall Python packages"
+category = "main"
+optional = false
+python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*"
+platform = "*"
+
+[[package]]
+name = "simplegeneric"
+version = "0.8.1"
+description = "Simple generic functions (similar to Python's own len(), pickle.dump(), etc.)"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[[package]]
+name = "six"
+version = "1.11.0"
+description = "Python 2 and 3 compatibility utilities"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[[package]]
+name = "tabulate"
+version = "0.8.2"
+description = "Pretty-print tabular data"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[[package]]
+name = "tornado"
+version = "5.0.2"
+description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
+category = "main"
+optional = false
+python-versions = ">= 2.7, !=3.0.*, !=3.1.*, !=3.2.*, != 3.3.*"
+platform = "*"
+
+[[package]]
+name = "traitlets"
+version = "4.3.2"
+description = "Traitlets Python config system"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "Linux,Mac OS X,Windows"
+
+[package.dependencies]
+decorator = "*"
+ipython-genutils = "*"
+six = "*"
+enum34 = "*"
+[[package]]
+name = "typing"
+version = "3.6.4"
+description = "Type Hints for Python"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "*"
+
+[package.requirements]
+python = "<=3.4"
+[[package]]
+name = "wcwidth"
+version = "0.1.7"
+description = "Measures number of Terminal column cells of wide-character codes"
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[[package]]
+name = "win-unicode-console"
+version = "0.5"
+description = "Enable Unicode input and display when running Python from Windows console."
+category = "main"
+optional = false
+python-versions = "*"
+platform = "UNKNOWN"
+
+[package.requirements]
+python = "<3.6"
+platform = "win32"
+
+[metadata]
+python-versions = "*"
+platform = "*"
+content-hash = "abee4bb6a2d6456215d9f8d7e136cff440ff189a3f9882cb5db8fc5fbe4a7061"
+
+[metadata.hashes]
+appnope = [ "5b26757dc6f79a3b7dc9fab95359328d5747fcb2409d331ea66d0272b90ab2a0", "8b995ffe925347a2138d7ac0fe77155e4311a0ea6d6da4f5128fe4b3cbe5ed71",]
+atomicwrites = [ "a24da68318b08ac9c9c45029f4a10371ab5b20e4226738e150e6e7c571630ae6", "240831ea22da9ab882b551b31d4225591e5e447a68c5e188db5b89ca1d487585",]
+attrs = [ "4b90b09eeeb9b88c35bc642cbac057e45a5fd85367b985bd2809c62b7b939265", "e0d0eb91441a3b53dab4d9b743eafc1ac44476296a2053b6ca3af0b139faf87b",]
+backcall = [ "38ecd85be2c1e78f77fd91700c76e14667dc21e2713b63876c0eb901196e01e4", "bbbf4b1e5cd2bdb08f915895b51081c041bac22394fdfcfdfbe9f14b77c08bf2",]
+carriage = [ "baaf9dfb05a95a347fafe058e6ef3c37f355b03236a1e6931221edf06dbad526",]
+colorama = [ "463f8483208e921368c9f306094eb6f725c6ca42b0f97e313cb5d5512459feda", "48eb22f4f8461b1df5734a074b57042430fb06e1d61bd1e11b078c0fe6d7a1f1",]
+decorator = [ "2c51dff8ef3c447388fe5e4453d24a2bf128d3a4c32af3fabef1f01c6851ab82", "c39efa13fbdeb4506c476c9b3babf6a718da943dab7811c206005a4a956c080c",]
+enum34 = [ "6bd0f6ad48ec2aa117d3d141940d484deccda84d4fcd884f5c3d93c23ecd8c79", "644837f692e5f550741432dd3f223bbb9852018674981b1664e5dc339387588a", "8ad8c4783bf61ded74527bffb48ed9b54166685e4230386a9ed9b1279e2df5b1", "2d81cbbe0e73112bdfe6ef8576f2238f2ba27dd0d55752a776c41d38b7da2850",]
+funcsigs = [ "330cc27ccbf7f1e992e69fef78261dc7c6569012cf397db8d3de0234e6c937ca", "a7bb0f2cf3a3fd1ab2732cb49eba4252c2af4240442415b4abce3b87022a8f50",]
+ipykernel = [ "395f020610e33ffa0b0c9c0cd1a1d927d51ab9aa9f30a7ae36bb0c908a33e89c", "935941dba29d856eee34b8b5261d971bd5012547239ed73ddfff099143748c37", "c091449dd0fad7710ddd9c4a06e8b9e15277da306590bc07a3a1afa6b4453c8f",]
+ipython = [ "a0c96853549b246991046f32d19db7140f5b1a644cc31f0dc1edc86713b7676f", "eca537aa61592aca2fef4adea12af8e42f5c335004dfa80c78caf80e8b525e5c",]
+ipython-genutils = [ "72dd37233799e619666c9f639a9da83c34013a73e8bbc79a7a6348d93c61fab8", "eb2e116e75ecef9d4d228fdc66af54269afa26ab4463042e33785b887c628ba8",]
+jedi = [ "c254b135fb39ad76e78d4d8f92765ebc9bf92cbc76f49e97ade1d5f5121e1f6f", "b409ed0f6913a701ed474a614a3bb46e6953639033e31f769ca7581da5bd1ec1",]
+jupyter-client = [ "59e6d791e22a8002ad0e80b78c6fd6deecab4f9e1b1aa1a22f4213de271b29ea", "27befcf0446b01e29853014d6a902dd101ad7d7f94e2252b1adca17c3466b761",]
+jupyter-core = [ "927d713ffa616ea11972534411544589976b2493fc7e09ad946e010aa7eb9970", "ba70754aa680300306c699790128f6fbd8c306ee5927976cbe48adacf240c0b7",]
+more-itertools = [ "a18d870ef2ffca2b8463c0070ad17b5978056f403fb64e3f15fe62a52db21cc0", "6703844a52d3588f951883005efcf555e49566a48afd4db4e965d69b883980d3", "2b6b9893337bfd9166bee6a62c2b0c9fe7735dcf85948b387ec8cba30e85d8e8",]
+ordereddict = [ "1c35b4ac206cef2d24816c89f89cf289dd3d38cf7c449bb3fab7bf6d43f01b1f",]
+parso = [ "8105449d86d858e53ce3e0044ede9dd3a395b1c9716c696af8aa3787158ab806", "d250235e52e8f9fc5a80cc2a5f804c9fefd886b2e67a2b1099cf085f403f8e33",]
+pathlib2 = [ "d1aa2a11ba7b8f7b21ab852b1fb5afb277e1bb99d5dfc663380b5015c0d80c5a", "8eb170f8d0d61825e09a95b38be068299ddeda82f35e96c3301a8a5e7604cb83",]
+pexpect = [ "3fbd41d4caf27fa4a377bfd16fef87271099463e6fa73e92a52f92dfee5d425b", "2a8e88259839571d1251d278476f3eec5db26deb73a70be5ed5dc5435e418aba",]
+pickleshare = [ "c9a2541f25aeabc070f12f452e1f2a8eae2abd51e1cd19e8430402bdf4c1d8b5", "84a9257227dfdd6fe1b4be1319096c20eb85ff1e82c7932f36efccfe1b09737b",]
+pluggy = [ "d345c8fe681115900d6da8d048ba67c25df42973bda370783cd58826442dcd7c", "e160a7fcf25762bb60efc7e171d4497ff1d8d2d75a3d0df7a21b76821ecbf5c5", "7f8ae7f5bdf75671a718d2daf0a64b7885f74510bcd98b1a0bb420eb9a9d0cff",]
+prompt-toolkit = [ "3f473ae040ddaa52b52f97f6b4a493cfa9f5920c255a12dc56a7d34397a398a4", "1df952620eccb399c53ebb359cc7d9a8d3a9538cb34c5a1344bdbeb29fbcc381", "858588f1983ca497f1cf4ffde01d978a3ea02b01c8a26a8bbc5cd2e66d816917",]
+ptyprocess = [ "d7cc528d76e76342423ca640335bd3633420dc1366f258cb31d05e865ef5ca1f", "923f299cc5ad920c68f2bc0bc98b75b9f838b93b599941a6b63ddbc2476394c0",]
+py = [ "e31fb2767eb657cbde86c454f02e99cb846d3cd9d61b318525140214fdc0e98e", "3fd59af7435864e1a243790d322d763925431213b6b8529c6ca71081ace3bbf7",]
+pygments = [ "78f3f434bcc5d6ee09020f92ba487f95ba50f1e3ef83ae96b9d5ffa1bab25c5d", "dbae1046def0efb574852fab9e90209b23f556367b5a320c0bcb871c77c3e8cc",]
+pytest = [ "90898786b3d0b880b47645bae7b51aa9bbf1e9d1e4510c2cfd15dd65c70ea0cd", "8ea01fc4fcc8e1b1e305252b4bc80a1528019ab99fd3b88666c9dc38d754406c",]
+python-dateutil = [ "1adb80e7a782c12e52ef9a8182bebeb73f1d7e24e374397af06fb4956c8dc5c0", "e27001de32f627c22380a688bcc43ce83504a7bc5da472209b4c70f02829f0b8",]
+pyzmq = [ "2fb4d745ffe0a65ebf8fd29df093bb5c0ac96a506cb05b9a7b7c94b2524ae7f6", "b89268020a843d4c3cc04180577ec061fe96d35f267b0b672cb006e4d70560da", "d51eb3902d27d691483243707bfa67972167a70269bbbc172b74eeac4f780a1d", "e5578ae84bb94e97adadfcb00106a1cb161cb8017f89b01f6c3737f356257811", "4193cc666591495ab7fe8d24fa8374a35f9775f16dc7c46e03615559e1fc1855", "b328c538061757f627d32f7f8885c16f1d2f59f5374e057822f3c8e6cd94c41b", "18de8a02768b1c0b3495ac635b24bd902fafc08befb70a6e68c4d343ccbd6cbd", "fb983aec4bddee3680a0b7395f99e4595d70d81841370da736c5dc642bad4cd2", "ad5a8b19b6671b52d30ccfc3a0f4c600e49c4e2dcc88caf4106ed5958dec8d5e", "767e1d0b1f7fff1950127abc08c5a5af2754987bc6480c6d641bed6971278a7a", "c30d27c9b35285597b8ef3019f97b9b98457b053f65dcc87a90dfdd4db09ca78", "bdb12b485b3440b5193cd337d27cc126cdfc54ea9f38df237e1ead6216435cbe", "ba0b43aebf856e5e249250d74c1232d6600b6859328920d12e2ba72a565ab1b1", "630fb21f7474eb9e409a1ad476bf1ec489a69eb021172d422f2485cc3a44cd79", "6c3632d2c17cf03ce728ffaa328d45bb053623b3a0aa9747adcde81778d5a4d5", "538dfdd9542cf9ff37cd958da03b58d56b53b90800159ea07adc51a8ec7ffcb8", "613ac1fc4591b1c6a0a52ce3ed17dbffd6a17e985df504e8b4cdb987f97285b1", "a0ecf4c3eccd92f030a4e3e334b9da6fa3ee86be00249343c74e476d70567d0f", "863ec1bfa52da6eaa5c4aa59143eeaeb4ef7a076862407a548ec645f25e6d6df", "f35b4cdeffff79357a9d929daa2a8620fb362b2cbeebdc5dd2cf9fcd27c44821", "445fed4d71ac48da258ba38f2e29c88c5091124212a4004a0a6a42e6586a7de1", "b31f2b50ad2920f21b904f5edf66bee324e42bb978df1407ecf381b210d4678e", "0145ae59139b41f65e047a3a9ed11bbc36e37d5e96c64382fcdff911c4d8c3f0",]
+scandir = [ "f39dd5affde2860fb28176d2233f318ccca97c55019407ee8172b3fba0b211db", "7729b8444c5f5187649ff58501e7c2ad22b84d7dc28f738f64c5b615913fec22", "b6cb611a18a828146a178362a36a2c6557c51c596ded4314cb516dd8c947b4ce", "d985e36eb3effebb20434e6cd7495440b4ba676a22f3ec61e9fff9f3e2995238", "24f32112c483ac6c4a40b62f1282e61ecca7977153b66a0d26a9583a716dcb64", "b55a091b91f9e6c9c7129889b2f58df329530172a99172de9e784545342a45e6", "f91418e82edb5a43b020fa15e30a41d730b71c5957536749366bf63cc05427b1", "6c80092f8fe3e62c3da3110067589c6661c722b0889906d2974e5150f1314523", "96dfc553f50946deb6d1cd762bac5cf122832c4aa253c885ca357ef53dd8d072", "8e3ca5925cc13787aeafbf08f055a8066c091fc20bfa8783235b916cf047afbe", "b2d55be869c4f716084a19b1e16932f0769711316ba62de941320bf2be84763d",]
+setuptools = [ "8fca9275c89964f13da985c3656cb00ba029d7f3916b37990927ffdf264e7926", "f7cddbb5f5c640311eb00eab6e849f7701fa70bf6a183fc8a2c33dd1d1672fb2",]
+simplegeneric = [ "dc972e06094b9af5b855b3df4a646395e43d1c9d0d39ed345b7393560d0b9173",]
+six = [ "832dc0e10feb1aa2c68dcc57dbb658f1c7e65b9b61af69048abc87a2db00a0eb", "70e8a77beed4562e7f14fe23a786b54f6296e34344c23bc42f07b15018ff98e9",]
+tabulate = [ "e4ca13f26d0a6be2a2915428dc21e732f1e44dad7f76d7030b2ef1ec251cf7f2",]
+tornado = [ "88ce0282cce70df9045e515f578c78f1ebc35dcabe1d70f800c3583ebda7f5f5", "ba9fbb249ac5390bff8a1d6aa4b844fd400701069bda7d2e380dfe2217895101", "408d129e9d13d3c55aa73f8084aa97d5f90ed84132e38d6932e63a67d5bec563", "c050089173c2e9272244bccfb6a8615fb9e53b79420a5551acfa76094ecc3111", "1b83d5c10550f2653380b4c77331d6f8850f287c4f67d7ce1e1c639d9222fbc7",]
+traitlets = [ "c6cb5e6f57c5a9bdaa40fa71ce7b4af30298fbab9ece9815b5d995ab6217c7d9", "9c4bd2d267b7153df9152698efb1050a5d84982d3384a37b2c1f7723ba3e7835",]
+typing = [ "b2c689d54e1144bbcfd191b0832980a21c2dbcf7b5ff7a66248a60c90e951eb8", "3a887b021a77b292e151afb75323dea88a7bc1b3dfa92176cff8e44c8b68bddf", "d400a9344254803a2368533e4533a4200d21eb7b6b729c173bc38201a74db3f2",]
+wcwidth = [ "f4ebe71925af7b40a864553f761ed559b43544f8f71746c2d756c7fe788ade7c", "3df37372226d6e63e1b1e1eda15c594bca98a22d33a23832a90998faa96bc65e",]
+win-unicode-console = [ "d4142d4d56d46f449d6f00536a73625a871cba040f0bc1a2e305a04578f07d1e",]
