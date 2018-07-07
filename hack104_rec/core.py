@@ -1,14 +1,14 @@
-# %cd / home/joe/hack104-rec
 import os
+from contextlib import contextmanager
 
 import findspark
-import jieba
-from carriage import Stream, X
-from opencc import OpenCC
+import pyspark
+from pyspark.conf import SparkConf
 from pyspark.sql import functions as f
+from pyspark.sql.session import SparkSession
 from pyspark.sql.types import (ArrayType, BooleanType, IntegerType, LongType,
-                               MapType, StringType, StructField, StructType,
-                               TimestampType)
+                               MapType, ShortType, StringType, StructField,
+                               StructType, TimestampType)
 
 
 def init_spark_env():
@@ -32,13 +32,37 @@ def udfy(func=None, return_type=StringType()):
         return wrapper(func)
 
 
-openCC = OpenCC('t2s')
+def auto_spark(f=None, *configs):
+    spark_conf = SparkConf()
 
+    def wrapper(*args, **kwargs):
+        if (all(not isinstance(arg, SparkSession)
+                for arg in args) and
+                'spark' not in kwargs):
 
-@udfy(return_type=ArrayType(StringType()))
-def tokenize(text):
-    try:
-        return (Stream(jieba.cut_for_search(openCC.convert(text)))
-                .filter(X != ' ').to_list())
-    except:
-        print('text', text)
+            spark = (
+                SparkSession
+                .builder
+                .config(conf=spark_conf)
+                .getOrCreate())
+
+            ret = wrapper.func(*args, spark=spark, **kwargs)
+
+        else:
+            ret = f(*args, **kwargs)
+
+        return ret
+
+    if callable(f):
+        wrapper.func = f
+        return wrapper
+
+    if f is not None:
+        configs = (f,) + configs
+
+    spark_conf.setAll(configs)
+
+    def deco(f):
+        wrapper.func = f
+        return wrapper
+    return deco

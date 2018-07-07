@@ -9,7 +9,7 @@ from pyspark.sql.types import (ArrayType, BooleanType, IntegerType, LongType,
                                MapType, StringType, StructField, StructType,
                                TimestampType)
 
-
+from .core import with_spark
 
 
 class DataFormat(Enum):
@@ -37,7 +37,8 @@ class DataModelMixin():
         raise NotImplementedError
 
     @classmethod
-    def query(cls, spark):
+    @with_spark
+    def query(cls, spark=None):
         if cls.data.data_format is DataFormat.JSON:
             return spark.read.json(
                 cls.data.full_path,

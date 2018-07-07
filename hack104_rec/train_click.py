@@ -1,7 +1,5 @@
-# %cd / home/joe/hack104-rec
 
 
-import pyspark
 from pyspark.sql import functions as f
 from pyspark.sql.types import (ArrayType, BooleanType, IntegerType, LongType,
                                MapType, StringType, StructField, StructType,
@@ -9,8 +7,10 @@ from pyspark.sql.types import (ArrayType, BooleanType, IntegerType, LongType,
 
 from hack104_rec import query_string
 
-from .core import tokenize
+from .core import auto_spark
 from .data import Data, DataFormat, DataModelMixin
+from .metric import ndcg_at_k, score_relevance
+from .misc import tokenize
 
 
 class TrainClick(DataModelMixin):
@@ -31,19 +31,11 @@ class TrainClick(DataModelMixin):
 
 class TrainClickProcessed(DataModelMixin):
     data = Data('train-click-processed.pq',
-                data_format=DataFormat.PARQUET
-                )
+                data_format=DataFormat.PARQUET)
 
     @classmethod
-    def populate(cls):
-        spark = (
-            pyspark.sql.SparkSession
-            .builder
-            .appName(f'{cls.__name__}.populate()')
-            # .config('spark.driver.memory', '5g')
-            # .config('spark.executor.memory', '5g')
-            .config("spark.speculation", "false")
-            .getOrCreate())
+    @auto_spark
+    def populate(cls, spark=None):
 
         train_click_processed_sdf = (
             TrainClick.query(spark)
@@ -60,4 +52,27 @@ class TrainClickProcessed(DataModelMixin):
             .withColumn('date', f.to_date('datetime'))
         )
         cls.write(train_click_processed_sdf, mode='overwrite')
-        spark.stop()
+
+    @classmethod
+    @auto_spark
+    def query_ndcg(cls, spark=None):
+        return (cls.query()
+                .withColumn('rel_list', score_relevance.udf('jobno', 'joblist'))
+                .withColumn('ndcg', ndcg_at_k.udf('rel_list'))
+                .select(f.mean('ndcg').alias('ndcg')))
+
+
+class TrainClickExploded(DataModelMixin):
+    data = Data('train-click-exploded.p',
+                data_format=DataFormat.PARQUET)
+
+    @classmethod
+    @auto_spark
+    def populate(cls, spark=None):
+        train_click_exploded_sdf = (
+            TrainClickProcessed.query(spark)
+            .withColumn('job_in_list', f.explode('joblist'))
+        )
+
+        cls.write(train_click_exploded_sdf,
+                  mode='overwrite', compression='snappy')
