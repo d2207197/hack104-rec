@@ -7,7 +7,7 @@ from pyspark.sql.types import (ArrayType, BooleanType, IntegerType, LongType,
                                MapType, StringType, StructField, StructType,
                                TimestampType)
 
-from hack104_rec.query_param import query_param_processor
+from hack104_rec import query_string
 
 from .core import tokenize
 from .data import Data, DataFormat, DataModelMixin
@@ -42,6 +42,7 @@ class TrainClickProcessed(DataModelMixin):
             .appName(f'{cls.__name__}.populate()')
             # .config('spark.driver.memory', '5g')
             # .config('spark.executor.memory', '5g')
+            .config("spark.speculation", "false")
             .getOrCreate())
 
         train_click_processed_sdf = (
@@ -54,7 +55,7 @@ class TrainClickProcessed(DataModelMixin):
             .withColumn('joblist',
                         f.col('joblist').cast(ArrayType(LongType())))
             .withColumn('query_params',
-                        query_param_processor.udf('querystring'))
+                        query_string.process_udf('querystring'))
             .withColumn('tokens', tokenize.udf('query_params.keyword'))
             .withColumn('date', f.to_date('datetime'))
         )
