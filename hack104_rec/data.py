@@ -9,7 +9,7 @@ from pyspark.sql.types import (ArrayType, BooleanType, IntegerType, LongType,
                                MapType, StringType, StructField, StructType,
                                TimestampType)
 
-from .core import with_spark
+from .core import auto_spark
 
 
 class DataFormat(Enum):
@@ -37,7 +37,7 @@ class DataModelMixin():
         raise NotImplementedError
 
     @classmethod
-    @with_spark
+    @auto_spark
     def query(cls, spark=None):
         if cls.data.data_format is DataFormat.JSON:
             return spark.read.json(
@@ -50,9 +50,14 @@ class DataModelMixin():
 
     @classmethod
     def write(cls, sdf, **write_kwargs):
+        if 'mode' not in write_kwargs:
+            write_kwargs['mode'] = 'overwrite'
+
         if cls.data.data_format is DataFormat.JSON:
-            sdf.write.json(cls.data.full_path, **write_kwargs)
+            sdf.write.json(cls.data.full_path,
+                           **write_kwargs)
         elif cls.data.data_format is DataFormat.PARQUET:
-            sdf.write.parquet(cls.data.full_path, **write_kwargs)
+            sdf.write.parquet(cls.data.full_path,
+                              **write_kwargs)
         else:
             raise ValueError('Unknown DataFormat')
