@@ -6,7 +6,7 @@ from pyspark.sql.types import (ArrayType, LongType, StringType, StructField,
 
 from hack104_rec import query_string
 
-from .core import auto_spark
+from .core import auto_spark, udfy
 from .data import Data, DataFormat, DataModelMixin
 from .metric import ndcg_at_k, score_relevance
 from .misc import tokenize
@@ -47,33 +47,78 @@ class TrainClickProcessed(DataModelMixin):
             .withColumn('query_params',
                         query_string.process_udf('querystring'))
             .withColumn('tokens', tokenize.udf('query_params.keyword'))
+            .withColumn('rel_list',
+                        score_relevance.udf('joblist', 'jobno', 'action'))
         )
         cls.write(sdf)
 
     @classmethod
     @auto_spark
-    def query_ndcg(cls, spark=None):
-        return (cls.query()
-                .withColumn('rel_list',
-                            score_relevance.udf('jobno', 'joblist'))
-                .withColumn('ndcg', ndcg_at_k.udf('rel_list'))
-                .select(f.mean('ndcg').alias('ndcg')))
+    def calc_ndcg(cls, spark=None):
+        return (
+            cls.query()
+            .withColumn('ndcg', ndcg_at_k.udf('rel_list'))
+            .select(f.mean('ndcg').alias('ndcg'))
+            .first()
+        ).ndcg
+
+
+@udfy(return_type=ArrayType(
+    StructType([
+        StructField('job', LongType()),
+        StructField('rel', LongType()),
+    ])))
+def zip_job_rel(joblist, rel_list):
+    return [(j, r) for j, r in zip(joblist, rel_list)]
+
+
+class TrainClickGrouped(DataModelMixin):
+    data = Data('train-click-grouped.pq')
+
+    @classmethod
+    @auto_spark
+    def populate(cls, spark=None):
+        sdf = (
+            TrainClickProcessed.query()
+            .groupby('source', 'date', 'datetime', 'query_params', 'joblist')
+            .agg(f.collect_list('id').alias('id_list'),
+                 f.collect_list('jobno').alias('jobno_list'),
+                 f.collect_list('action').alias('action_list'))
+            .withColumn('rel_list',
+                        score_relevance.udf(
+                            'joblist', 'jobno_list', 'action_list'))
+            .withColumn('job_rel_list', zip_job_rel.udf('joblist', 'rel_list'))
+            .withColumn('gid', f.monotonically_increasing_id())
+        )
+        cls.write(sdf)
+
+    @classmethod
+    @auto_spark
+    def calc_ndcg(cls, spark=None):
+        return (
+            cls.query()
+            .withColumn('ndcg', ndcg_at_k.udf('rel_list'))
+            .select(f.mean('ndcg').alias('ndcg'))
+            .first()
+        ).ndcg
 
 
 class TrainClickExploded(DataModelMixin):
-    data = Data('train-click-exploded.p',
-                data_format=DataFormat.PARQUET)
+    data = Data('train-click-exploded.pq')
 
     @classmethod
     @auto_spark(('spark.driver.memory', '5g'),
                 ('spark.executor.memory', '5g'))
     def populate(cls, spark=None):
         sdf = (
-            TrainClickProcessed.query(spark)
+            TrainClickGrouped.query(spark)
+            .drop('joblist', 'rel_list', 'id_list', 'jobno_list', 'action_list')
             .select('*',
-                    f.posexplode('joblist')
-                    .alias('pos_in_list', 'job_in_list'))
-            .drop('joblist')
+                    f.posexplode('job_rel_list')
+                    .alias('pos_in_list', 'job_rel_in_list'))
+            .drop('job_rel_list')
+            .select('*', 'job_rel_in_list.*')
+            .drop('job_rel_in_list')
         )
 
         cls.write(sdf,

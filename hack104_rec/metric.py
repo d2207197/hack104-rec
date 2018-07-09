@@ -1,4 +1,6 @@
 
+from collections import Counter
+
 import numpy as np
 from pyspark.sql.types import (ArrayType, BooleanType, DoubleType, IntegerType,
                                LongType, MapType, ShortType, StringType,
@@ -8,8 +10,24 @@ from .core import udfy
 
 
 @udfy(return_type=ArrayType(ShortType()))
-def score_relevance(jobno, joblist):
-    return [1 if jobno == j else 0 for j in joblist]
+def score_relevance(joblist, jobno_list, action_list):
+    if not isinstance(jobno_list, list):
+        jobno_list = [jobno_list]
+    if not isinstance(action_list, list):
+        action_list = [action_list]
+
+    job_to_rel_map = Counter()
+    for j, a in zip(jobno_list, action_list):
+        if a == 'clickJob':
+            rel = 1
+        elif a == 'clickSave':
+            rel = 2
+        elif a == 'clickApply':
+            rel = 3
+
+        job_to_rel_map[j] += rel
+
+    return [job_to_rel_map.get(j, 0) for j in joblist]
 
 
 @udfy(return_type=DoubleType())
