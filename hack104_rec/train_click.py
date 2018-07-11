@@ -133,10 +133,7 @@ class TrainClickCTR(DataModelMixin):
     def populate(cls, spark=None):
         sdf = (
             TrainClickExploded.query()
-            .withColumn('click',
-                        f.when(f.col('jobno') ==
-                               f.col('job_in_list'), 1)
-                        .otherwise(0))
+            .withColumn('click', f.col('rel'))
             .groupby('date', 'source', 'action',
                      'query_params.keyword', 'job_in_list')
             .agg(f.count(f.lit(1)).alias('impr'),

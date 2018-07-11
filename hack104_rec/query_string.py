@@ -47,8 +47,8 @@ class QueryStringProcessor:
         query_string_d = dict(urllib.parse.parse_qsl(query_string))
 
         def _process_param(value, qpp):
-            if value is None:
-                return value
+            # if value is None:
+            #     return value
 
             return qpp.process_param(value)
 
@@ -65,11 +65,39 @@ class QueryStringProcessor:
                            for name, qpp in cls.name_to_qpp_map.items()])
 
 
-QueryStringProcessor.register_many(
-    ['mode', 'keyword', 'sctp',  'wktm'],
-    StringType(),
-    lambda s: s
-)
+@QueryStringProcessor.register('keyword', IntegerType())
+def keyword_processor(k):
+    return k
+
+
+@QueryStringProcessor.register('sctp', IntegerType())
+def sctp_processor(v):
+    if v == 'P':
+        return 1
+    elif v == 'S':
+        return 2
+    else:
+        return 0
+
+
+@QueryStringProcessor.register('mode', IntegerType())
+def mode_processor(v):
+    if v == 's':
+        return 1
+    elif v == 'l':
+        return 2
+    else:
+        return 0
+
+
+@QueryStringProcessor.register('wktm', IntegerType())
+def wktm_processor(v):
+    if v == '週休二日':
+        return 1
+    elif v == '隔週休':
+        return 2
+    else:
+        return 0
 
 
 QueryStringProcessor.register_many(
@@ -79,14 +107,15 @@ QueryStringProcessor.register_many(
         'rostatus', 's9', 'wf', 'wt', 'zone'
     ],
     ArrayType(IntegerType()),
-    lambda intarr: [int(e) for e in intarr.split(',')]
+    lambda intarr: [int(e) for e in intarr.split(',')
+                    ] if intarr is not None else []
 )
 
 
 QueryStringProcessor.register_many(
     ['order', 'asc', 'scmax', 'scmin'],
     IntegerType(),
-    lambda int_str: int(int_str)
+    lambda int_str: int(int_str) if int_str is not None else -1
 )
 
 

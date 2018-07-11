@@ -1,3 +1,4 @@
+import functools as fnt
 import os
 from contextlib import contextmanager
 
@@ -34,6 +35,8 @@ def udfy(func=None, return_type=StringType()):
 
 def auto_spark(f=None, *configs):
     spark_conf = SparkConf()
+    spark_conf.setMaster('local[16]')
+    spark_conf.setSparkHome('/opt/spark')
 
     def wrapper(*args, **kwargs):
         if (all(not isinstance(arg, SparkSession)
@@ -49,12 +52,13 @@ def auto_spark(f=None, *configs):
             ret = wrapper.func(*args, spark=spark, **kwargs)
 
         else:
-            ret = f(*args, **kwargs)
+            ret = wrapper.func(*args, **kwargs)
 
         return ret
 
     if callable(f):
         wrapper.func = f
+        fnt.update_wrapper(wrapper, f)
         return wrapper
 
     if f is not None:
@@ -64,5 +68,6 @@ def auto_spark(f=None, *configs):
 
     def deco(f):
         wrapper.func = f
+        fnt.update_wrapper(wrapper, f)
         return wrapper
     return deco
