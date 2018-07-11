@@ -2,6 +2,7 @@
 from collections import Counter
 
 import numpy as np
+from carriage import Stream
 from pyspark.sql.types import (ArrayType, BooleanType, DoubleType, IntegerType,
                                LongType, MapType, ShortType, StringType,
                                StructField, StructType, TimestampType)
@@ -105,3 +106,33 @@ def ndcg_at_k(r, k=None, method=1):
     if not dcg_max:
         return 0.
     return np.asscalar(dcg_at_k(r, k, method) / dcg_max)
+
+
+def ndcg_score_of_truth(y_truth):
+    from carriage import Stream
+    return (Stream(y_truth)
+            .chunk(20)
+            .map(lambda row: row.to_list())
+            .map(lambda l: ndcg_at_k(l))
+            .mean())
+
+
+def ndcg_score_of_prediction(y_truth, y_pred):
+    pred_groups_stm = (Stream(y_pred)
+                       .chunk(20)
+                       .map(lambda row: row.to_list()))
+
+    test_y_groups_stm = (
+        Stream(y_truth)
+        .chunk(20)
+        .map(lambda row: row.to_list()))
+
+    return (pred_groups_stm
+            .zip(test_y_groups_stm)
+            .starmap(
+                lambda pred_l, y_l:
+                [y_e for pred_e, y_e in
+                 sorted(zip(pred_l, y_l), reverse=True)])
+            .map(lambda l: ndcg_at_k(l))
+            .mean()
+            )

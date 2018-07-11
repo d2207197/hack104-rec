@@ -22,15 +22,15 @@ def set_trace():
     set_trace(term_size=(170, 45))
 
 
-def udfy(func=None, return_type=StringType()):
-    def wrapper(func):
-        func.udf = f.udf(func, returnType=return_type)
-        return func
+def udfy(wrapped=None, return_type=StringType()):
+    def wrapper(wrapped):
+        wrapped.udf = f.udf(wrapped, returnType=return_type)
+        return wrapped
 
-    if func is None:
+    if wrapped is None:
         return wrapper
     else:
-        return wrapper(func)
+        return wrapper(wrapped)
 
 
 def auto_spark(f=None, *configs):
