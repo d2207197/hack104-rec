@@ -3,7 +3,7 @@ __version__ = '0.1.0'
 from .base import init_spark_env
 from .core import auto_spark, udfy
 from .data import Data, DataFormat, DataModelMixin
-from .job import JobDateRange
+from .job import JobDateRange, JobProcessed
 from .metric import (ndcg_at_k, ndcg_score_of_prediction, ndcg_score_of_truth,
                      score_relevance)
 from .misc import tokenize

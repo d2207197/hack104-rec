@@ -1,11 +1,12 @@
 
 from pyspark.sql import functions as f
-from pyspark.sql.types import (ArrayType, LongType, StringType, StructField,
-                               StructType, TimestampType, IntegerType)
+from pyspark.sql.types import (ArrayType, IntegerType, LongType, ShortType,
+                               StringType, StructField, StructType,
+                               TimestampType)
 
 from .core import auto_spark, udfy
-from .misc import tokenize
 from .data import Data, DataFormat, DataModelMixin
+from .misc import tokenize
 from .train_action import TrainActionProcessed
 from .train_click import TrainClickExploded
 from .utils import rm_repeat, to_halfwidth
@@ -66,10 +67,39 @@ class JobProcessed(DataModelMixin):
             Job.query(spark)
             .select('custno',
                     f.col('jobno').cast(IntegerType()),
-                    'worktime',
+                    # 'worktime',
                     'description',
                     'job',
-                    'others')
+                    'others',
+                    'addr_no',
+                    'edu',
+                    'exp_jobcat1',
+                    'exp_jobcat2',
+                    'exp_jobcat3',
+                    f.col('industry').cast(LongType()),
+                    f.col('jobcat1').cast(LongType()),
+                    f.col('jobcat2').cast(LongType()),
+                    f.col('jobcat3').cast(LongType()),
+                    'language1',
+                    'language2',
+                    'language3',
+                    f.col('major_cat').cast(IntegerType()),
+                    f.col('major_cat2').cast(IntegerType()),
+                    f.col('major_cat3').cast(IntegerType()),
+                    'need_emp',
+                    'need_emp1',
+                    'period',
+                    'role',
+                    'role_status',
+                    's2',
+                    's3',
+                    's9',
+                    'salary_high',
+                    'salary_low',
+                    'startby',
+                    f.when(f.col('worktime') == '週休二日', 1).when(
+                        f.col('worktime') == '隔週休', 2).otherwise(0).alias('worktime')
+                    )
             .withColumn('description', tokenize_to_struct.udf('description'))
             .withColumn('job', tokenize_to_struct.udf('job'))
             .withColumn('others', tokenize_to_struct.udf('others'))
@@ -78,7 +108,7 @@ class JobProcessed(DataModelMixin):
 
 
 @udfy(return_type=StructType([StructField('keyword', StringType()),
-                             StructField('token', ArrayType(StringType()))]))
+                              StructField('token', ArrayType(StringType()))]))
 def tokenize_to_struct(text):
     tokens = tokenize(simple_clean(text))
     return (text, [tok for tok in tokens if len(tok) > 0] if text is not None else None)
@@ -86,10 +116,10 @@ def tokenize_to_struct(text):
 
 def simple_clean(text):
     return (
-        rm_repeat(to_halfwidth(text.replace('\n', ' ').replace('\r', ''))).lower().strip()
+        rm_repeat(to_halfwidth(text.replace(
+            '\n', ' ').replace('\r', ''))).lower().strip()
         if text is not None else None
     )
-
 
 
 if __name__ == '__main__':
