@@ -65,7 +65,7 @@ class QueryStringProcessor:
                            for name, qpp in cls.name_to_qpp_map.items()])
 
 
-@QueryStringProcessor.register('keyword', IntegerType())
+@QueryStringProcessor.register('keyword', StringType())
 def keyword_processor(k):
     return k
 
