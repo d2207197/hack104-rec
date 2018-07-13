@@ -1,10 +1,14 @@
+import datetime as dt
+import itertools as itt
 import logging
 import shutil
+from contextlib import contextmanager
 from pathlib import Path
 
 import attr
 
 import pyspark
+from hack104_rec.template import env
 from pyspark.sql import functions as f
 from pyspark.sql.types import StringType
 
@@ -15,6 +19,13 @@ from .train_action import TrainActionUnstacked
 from .train_click import TrainClickExploded
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def print_duration():
+    now = dt.datetime.now()
+    yield
+    print(dt.datetime.now() - now)
 
 
 class Features(DataModelMixin):
@@ -223,9 +234,7 @@ class Dataset(DataModelMixin):
     @auto_spark
     def to_libsvm(self, prefix, spark=None):
 
-        base_path = Path(
-            f'data/{prefix}-{self.start_date}_{self.stop_date}_'
-            f'{self.features_start_date}_{self.features_stop_date}')
+        base_path = self.get_base_path(prefix)
 
         dataset_path = base_path.with_suffix('.txt')
         dataset_spark_path = base_path.with_suffix('.txt.spark')
@@ -240,28 +249,106 @@ class Dataset(DataModelMixin):
          .drop('start_date', 'stop_date', 'features_start_date',
                'features_stop_date', 'date_stop', 'date_start')
          .rdd.map(row_to_libsvm)
-         .coalesce(1, False)
+         # .coalesce(1, False)
          .saveAsTextFile(dataset_spark_path.absolute().as_posix())
          )
-        (dataset_spark_path / 'part-00000').replace(dataset_path)
+
+        concat_files(sorted(dataset_spark_path.glob('part-*')), dataset_path)
 
         (sdf
-         .groupby('gid')
-         .count()
-         .select(f.col('count').astype(StringType()))
-         .rdd.map(lambda row: row['count'])
-         .coalesce(1, False)
+         .rdd.mapPartitions(count_group_length)
+         # .coalesce(1, False)
          .saveAsTextFile(query_spark_path.absolute().as_posix())
          )
-        (query_spark_path / 'part-00000').replace(query_path)
+        concat_files(sorted(query_spark_path.glob('part-*')), query_path)
+
+    def get_base_path(self, prefix):
+        base_path = Path(
+            f'data/{prefix}-{self.start_date}_{self.stop_date}_'
+            f'{self.features_start_date}_{self.features_stop_date}')
+        return base_path
+
+
+class Model:
+    def __init__(self,
+                 train_start_date, train_stop_date,
+                 train_features_start_date, train_features_stop_date,
+                 valid_start_date, valid_stop_date,
+                 valid_features_start_date, valid_features_stop_date,
+                 ):
+        self.train_start_date = train_start_date
+        self.train_stop_date = train_stop_date
+        self.train_features_start_date = train_features_start_date
+        self.train_features_stop_date = train_features_stop_date
+        self.trainset = Dataset(
+            start_date=train_start_date,
+            stop_date=train_stop_date,
+            features_start_date=train_features_start_date,
+            features_stop_date=train_features_stop_date,
+        )
+
+        self.valid_start_date = valid_start_date
+        self.valid_stop_date = valid_stop_date
+        self.valid_features_start_date = valid_features_start_date
+        self.valid_features_stop_date = valid_features_stop_date
+        self.validset = Dataset(
+            start_date=valid_start_date,
+            stop_date=valid_stop_date,
+            features_start_date=valid_features_start_date,
+            features_stop_date=valid_features_stop_date,
+        )
+
+    @auto_spark
+    def build_libSVM_files(self, spark=None):
+        with print_duration():
+            self.trainset.to_libsvm('trainset')
+
+        with print_duration():
+            self.validset.to_libsvm('validset')
+
+    def generate_lightGBM_conf(self):
+        train_conf_template = env.get_template('train.conf.j2')
+
+        train_base_path = self.trainset.get_base_path('trainset')
+        valid_base_path = self.validset.get_base_path('validset')
+
+        trainset_path = train_base_path.with_suffix('.txt')
+        validset_path = valid_base_path.with_suffix('.txt')
+
+        train_conf_text = train_conf_template.render(
+            trainset_path=trainset_path.as_posix(),
+            validset_path=validset_path.as_posix())
+
+        conf_path = Path(
+            f'data/lightGBM-train-{self.train_start_date}-'
+            f'valid-{self.valid_start_date}').with_suffix('.conf')
+
+        conf_path.write_text(train_conf_text)
+
+
+def concat_files(input_paths, output_path):
+    with output_path.open('wb') as wfd:
+        for input_path in input_paths:
+            with input_path.open('rb') as rfd:
+                shutil.copyfileobj(rfd, wfd, 1024*1024*10)
+
+
+def count_group_length(rows):
+    for gid, grp_rows in itt.groupby(rows, key=lambda row: row.gid):
+        yield len(list(grp_rows))
 
 
 @udfy(return_type=StringType())
 def row_to_libsvm(row):
     # return (f'{row["rel"]} gid:{row["gid"]} pos:{row["pos_in_list"]} ' +
     #         ' '.join(f'{i}:{v!r}' for i, v in enumerate(row[3:]) if v != 0))
-    return (f'{row["rel"]} ' +
-            ' '.join(f'{i}:{v!r}' for i, v in enumerate(row[3:]) if v != 0))
+    features_strs = []
+    for i, v in enumerate(row[3:]):
+        if v == 0 or v is None or v is False:
+            continue
+        features_strs.append(f'{i}:{float(v)!r}')
+
+    return (f'{row["rel"]} ' + ' '.join(features_strs))
 
 
 def get_y_X(trainset_df):
