@@ -1,8 +1,26 @@
 import re
-
+from pyspark.sql.types import (ArrayType, BooleanType, IntegerType, LongType,
+                               MapType, ShortType, StringType, StructField,
+                               StructType, TimestampType)
+from .core import udfy
+from .misc import tokenize
 
 CHAR_REPEAT_REGEX = r'(.)\1+'
 WORD_REPEAT_REGEX = r'(\S{2,}?)\1+'
+
+
+@udfy(return_type=StructType([StructField('keyword', StringType()),
+                             StructField('token', ArrayType(StringType()))]))
+def tokenize_to_struct(text):
+    tokens = tokenize(simple_clean(text))
+    return (text, [tok for tok in tokens if len(tok) > 0] if text is not None else None)
+
+
+def simple_clean(text):
+    return (
+        rm_repeat(to_halfwidth(text.replace('\n', ' ').replace('\r', ''))).lower().strip()
+        if text is not None else None
+    )
 
 
 def to_halfwidth(query: str) -> str:
@@ -38,3 +56,11 @@ def rm_repeat(query: str) -> str:
         WORD_REPEAT_REGEX, r'\1',
         re.sub(CHAR_REPEAT_REGEX, r'\1\1', query)
     )
+
+
+if __name__ == '__main__':
+
+    text = 'AAABBBCCCC安安安安哈啊哈哈哈~~~~'
+
+    print(simple_clean(text))
+
