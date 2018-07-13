@@ -301,10 +301,10 @@ class Model:
     @auto_spark
     def build_libSVM_files(self, spark=None):
         with print_duration():
-            self.trainset.to_libsvm('trainset')
+            self.validset.to_libsvm('validset')
 
         with print_duration():
-            self.validset.to_libsvm('validset')
+            self.trainset.to_libsvm('trainset')
 
     def generate_lightGBM_conf(self):
         train_conf_template = env.get_template('train.conf.j2')
