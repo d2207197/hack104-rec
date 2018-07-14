@@ -1,9 +1,8 @@
 
+from hack104_rec import query_string
 from pyspark.sql import functions as f
 from pyspark.sql.types import (ArrayType, LongType, StringType, StructField,
                                StructType)
-
-from hack104_rec import query_string
 
 from .core import auto_spark
 from .data import Data, DataFormat, DataModelMixin
@@ -21,7 +20,7 @@ class TestsetClick(DataModelMixin):
                         StructField('querystring', StringType(), False),
                     ]
                 )
-            )
+                )
 
 
 class TestsetClickProcessed(DataModelMixin):
@@ -44,7 +43,7 @@ class TestsetClickProcessed(DataModelMixin):
 
 # class TestClickGrouped(DataModelMixin):
 #     data = Data('test-click-grouped.pq')
-# 
+#
 #     @classmethod
 #     @auto_spark
 #     def populate(cls, spark=None):
@@ -74,11 +73,11 @@ class TestsetClickExploded(DataModelMixin):
         sdf = (
             TestsetClickProcessed.query(spark)
             # .drop('joblist', 'rel_list', 'id_list', 'jobno_list', 'action_list')
-            .withColumn('rel', f.lit(0))
             .select('*',
-            f.posexplode('joblist')
-                .alias('pos_in_list', 'job')
-            )
+                    f.posexplode('joblist')
+                    .alias('pos_in_list', 'job')
+                    )
+            .withColumn('rel', f.lit(0))
             .drop('joblist')
             # .select('*', 'job_in_list.*')
             # .drop('job_in_list')

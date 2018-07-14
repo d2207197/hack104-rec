@@ -16,10 +16,9 @@ from pyspark.sql.types import LongType, StringType
 from .core import auto_spark, udfy
 from .data import Data, DataModelMixin
 from .job import JobDateRange, JobProcessed
-from .train_action import TrainActionUnstacked
-from .train_click import TrainClickExploded
 from .testset_click import TestsetClickExploded
-
+from .train_action import TrainActionUnstacked
+from .train_click import TrainClickCTR, TrainClickExploded
 
 logger = logging.getLogger(__name__)
 
@@ -155,13 +154,12 @@ class Features(DataModelMixin):
                    compression='snappy')
 
 
-
 class TestsetDataset(DataModelMixin):
     data = Data('testset.pq')
 
     def __init__(self, start_date, stop_date,
                  features_start_date=None, features_stop_date=None):
-        #if features_start_date is None and features_stop_date is None:
+        # if features_start_date is None and features_stop_date is None:
         #    features_start_date = start_date
         #    features_stop_date = stop_date
         #self.start_date = start_date
@@ -171,7 +169,7 @@ class TestsetDataset(DataModelMixin):
 
 #     @auto_spark
 #     def query(self, populate_if_empty=False, spark=None):
-# 
+#
 #         error_occured = False
 #         try:
 #             sdf = (
@@ -184,7 +182,7 @@ class TestsetDataset(DataModelMixin):
 #                     (f.col('features_stop_date') == self.features_stop_date)))
 #         except pyspark.sql.utils.AnalysisException:
 #             error_occured = True
-# 
+#
 #         if populate_if_empty and (error_occured or sdf.limit(1).count() == 0):
 #             logger.warning(
 #                 f'Populating {type(self).__name__}'
@@ -193,7 +191,7 @@ class TestsetDataset(DataModelMixin):
 #                 f'features_start_date={self.features_start_date!r}, '
 #                 f'features_stop_date={self.features_stop_date!r})'
 #             )
-# 
+#
 #             self.populate(spark=spark)
 #             return self.query(populate_if_empty=False)
 #         else:
@@ -215,10 +213,11 @@ class TestsetDataset(DataModelMixin):
 
         label_sdf = (
             TestsetClickExploded.query(spark=spark)
-#            .filter(
-#                (f.col('date') >= self.start_date) &
-#                (f.col('date') <= self.stop_date))
-#            .drop('source', 'date', 'datetime')
+            #            .filter(
+            #                (f.col('date') >= self.start_date) &
+            #                (f.col('date') <= self.stop_date))
+            #            .drop('source', 'date', 'datetime')
+            .drop('querystring', 'tokens')
             .select('*', f.col('query_params.*'))
             .drop('query_params')
             .drop('keyword')  # String
@@ -234,7 +233,7 @@ class TestsetDataset(DataModelMixin):
                 label_sdf.job == features_sdf.jobno,
                 how='left'
             )
-            .drop('jobno')
+            .drop('job')
             .repartition(16*4, 'gid')
             .sortWithinPartitions('gid', 'pos_in_list')
         )
@@ -248,8 +247,8 @@ class TestsetDataset(DataModelMixin):
 #        )
 
         self.write(trainset_sdf,
-#                   partitionBy=(
-#                                'features_start_date', 'features_stop_date'),
+                   #                   partitionBy=(
+                   #                                'features_start_date', 'features_stop_date'),
                    compression='snappy')
         return
 
