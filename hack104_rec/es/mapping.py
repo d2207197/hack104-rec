@@ -94,10 +94,6 @@ class Job(Document):
 
 
 
-
-
-
-
 if __name__ == '__main__':
     connections.create_connection(hosts=['localhost:9201'], timeout=20)
     print('Initiating index: `hack104` for type: `Job`')

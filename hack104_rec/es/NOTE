@@ -1,1 +1,52 @@
 http get localhost:9201/hack104/_search query:='{"match": {"description": "美语"}}'
+
+http get localhost:9201/hack104/_search query:='{"terms": {"_id": ["9635192", "10291243"]}}' | jq -c '.hits.hits[]| ._id'
+
+{
+    "bool": {
+      "filter": {
+        "ids": {
+          "values": [
+            "9635192",
+            "10291243"
+          ]
+        }
+      },
+      "must": [
+        {
+          "multi_match": {
+            "query": "选择 , 跳板",
+            "type": "most_fields",
+            "fields": [
+              "welfare",
+              "management",
+              "welfare"
+            ],
+            "analyzer": "whitespace"
+          }
+        }
+      ]
+    }
+}
+
+{"bool":{"filter":{"ids":{"values":["9635192","10291243"]}},"must":[{"multi_match":{"query":"选择 , 跳板","type":"most_fields","fields":["welfare","management","welfare"],"analyzer":"whitespace"}}]}}
+
+
+
+recap 一下，keyword中的 每個 token 都要跑每個field對吧
+	國父, [Jul 13, 2018, 9:22:28 PM]:
+		對，multi match query 會自動幫你做好
+		包含 tf-idf 的  mean
+	國父, [Jul 13, 2018, 9:20:54 PM]:
+		可以先用 mean 就是 most_fields + or operator
+		es 會幫你算好 XD
+
+		這是 most field 會做好 mean
+		cross field 會更準但欄位數比較麻煩
+
+		我們要縮減到 fields
+		因爲 tokens 數量不定
+
+	國父, [Jul 13, 2018, 9:18:16 PM]:
+		用 ids + multi_match query
+		或許是 cross_fields or most_fields
