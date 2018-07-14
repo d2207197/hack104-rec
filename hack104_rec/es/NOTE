@@ -2,6 +2,8 @@ http get localhost:9201/hack104/_search query:='{"match": {"description": "美�
 
 http get localhost:9201/hack104/_search query:='{"terms": {"_id": ["9635192", "10291243"]}}' | jq -c '.hits.hits[]| ._id'
 
+http get localhost:9201/_search query:='{"bool":{"filter":{"ids":{"values":["9635192","10291243"]}},"must":[{"multi_match":{"query":"选择 , 跳板","type":"most_fields","fields":["welfare","management","welfare"],"analyzer":"whitespace"}}]}}' explain:=true | jq -c '.hits.hits[]._explanation.details[].details'
+
 {
     "bool": {
       "filter": {

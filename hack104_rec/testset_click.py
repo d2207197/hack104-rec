@@ -21,7 +21,7 @@ class TestsetClick(DataModelMixin):
                         StructField('querystring', StringType(), False),
                     ]
                 )
-                )
+            )
 
 
 class TestsetClickProcessed(DataModelMixin):
@@ -32,6 +32,7 @@ class TestsetClickProcessed(DataModelMixin):
     def populate(cls, spark=None):
         sdf = (
             TestsetClick.query(spark)
+            .withColumnRenamed('id', 'gid')
             .withColumn('joblist',
                         f.col('joblist').cast(ArrayType(LongType())))
             .withColumn('query_params',
@@ -39,3 +40,49 @@ class TestsetClickProcessed(DataModelMixin):
             .withColumn('tokens', tokenize.udf('query_params.keyword'))
         )
         cls.write(sdf)
+
+
+# class TestClickGrouped(DataModelMixin):
+#     data = Data('test-click-grouped.pq')
+# 
+#     @classmethod
+#     @auto_spark
+#     def populate(cls, spark=None):
+#         sdf = (
+#             TrainClickProcessed.query()
+#             .groupby('query_params', 'joblist')
+#             # .groupby('source', 'date', 'datetime', 'query_params', 'joblist')
+#             .agg(f.collect_list('id').alias('id_list'),
+#                  f.collect_list('jobno').alias('jobno_list'),
+#                  f.collect_list('action').alias('action_list'))
+#             .withColumn('rel_list',
+#                         score_relevance.udf(
+#                             'joblist', 'jobno_list', 'action_list'))
+#             .withColumn('job_rel_list', zip_job_rel.udf('joblist', 'rel_list'))
+#             .withColumn('gid', f.monotonically_increasing_id())
+#         )
+#         cls.write(sdf)
+
+
+class TestsetClickExploded(DataModelMixin):
+    data = Data('test-click-exploded.pq')
+
+    @classmethod
+    @auto_spark(('spark.driver.memory', '5g'),
+                ('spark.executor.memory', '5g'))
+    def populate(cls, spark=None):
+        sdf = (
+            TestsetClickProcessed.query(spark)
+            # .drop('joblist', 'rel_list', 'id_list', 'jobno_list', 'action_list')
+            .withColumn('rel', f.lit(0))
+            .select('*',
+            f.posexplode('joblist')
+                .alias('pos_in_list', 'job')
+            )
+            .drop('joblist')
+            # .select('*', 'job_in_list.*')
+            # .drop('job_in_list')
+        )
+
+        cls.write(sdf,
+                  compression='snappy')
