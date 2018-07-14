@@ -2,6 +2,7 @@ import datetime as dt
 import itertools as itt
 import logging
 import shutil
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -10,7 +11,7 @@ import attr
 import pyspark
 from hack104_rec.template import env
 from pyspark.sql import functions as f
-from pyspark.sql.types import StringType
+from pyspark.sql.types import LongType, StringType
 
 from .core import auto_spark, udfy
 from .data import Data, DataModelMixin
@@ -24,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def print_duration():
+def print_duration(prefix=''):
     now = dt.datetime.now()
     yield
-    print(dt.datetime.now() - now)
+    print(prefix, dt.datetime.now() - now)
 
 
 class Features(DataModelMixin):
@@ -94,7 +95,7 @@ class Features(DataModelMixin):
 
         features_sdf = (
             features_sdf
-            .join(open_days_sdf, 'jobno')
+            .join(open_days_sdf, 'jobno', how='left')
         )
 
         for column in count_columns:
@@ -116,9 +117,34 @@ class Features(DataModelMixin):
         )
 
         job_sdf = (JobProcessed.query()
-                   .drop('custno', 'description', 'job', 'others'))
+                   .withColumn('custno', uuid_to_long.udf('custno'))
+                   .drop('description', 'job', 'others'))
 
-        features_sdf = features_sdf.join(job_sdf, 'jobno')
+        ctr_sdf = (TrainClickCTR.query()
+                   .filter(
+                       (f.col('date') >= self.start_date) &
+                       (f.col('date') <= self.stop_date))
+                   .groupby('job', 'action')
+                   .agg((f.sum('click') / f.sum('impr')).alias('CTR'))
+                   .withColumn('CTR_clickJob',
+                               f.when(f.col('action') == 'clickJob',
+                                      f.col('CTR')).otherwise(0))
+                   .withColumn('CTR_clickSave',
+                               f.when(f.col('action') == 'clickSave',
+                                      f.col('CTR')).otherwise(0))
+                   .withColumn('CTR_clickApply',
+                               f.when(f.col('action') == 'clickApply',
+                                      f.col('CTR')).otherwise(0))
+                   .groupby('job')
+                   .agg(f.sum('CTR_clickApply').alias('CTR_clickApply'),
+                        f.sum('CTR_clickSave').alias('CTR_clickSave'),
+                        f.sum('CTR_clickJob').alias('CTR_clickJob')
+                        )
+                   .withColumnRenamed('job', 'jobno')
+                   )
+
+        # features_sdf = features_sdf.join(ctr_sdf, 'jobno', how='left')
+        features_sdf = features_sdf.join(job_sdf, 'jobno', how='left')
         features_sdf = (
             features_sdf
             .withColumn('start_date', f.lit(self.start_date))
@@ -127,6 +153,7 @@ class Features(DataModelMixin):
         self.write(features_sdf,
                    partitionBy=('start_date', 'stop_date'),
                    compression='snappy')
+
 
 
 class TestsetDataset(DataModelMixin):
@@ -269,6 +296,13 @@ class TestsetDataset(DataModelMixin):
             f'data/{prefix}-'
             f'{self.features_start_date}_{self.features_stop_date}')
         return base_path
+
+
+@udfy(return_type=LongType())
+def uuid_to_long(the_uuid):
+    return hash(uuid.UUID('b1049129-a9f5-4b59-9258-784d2b1bf5d1').int)
+
+
 class Dataset(DataModelMixin):
     data = Data('dataset.pq')
 
@@ -331,7 +365,7 @@ class Dataset(DataModelMixin):
             .filter(
                 (f.col('date') >= self.start_date) &
                 (f.col('date') <= self.stop_date))
-            .drop('source', 'date', 'datetime')
+            .drop('source', 'date', 'datetime', 'action')
             .select('*', f.col('query_params.*'))
             .drop('query_params')
             .drop('keyword')  # String
@@ -347,7 +381,8 @@ class Dataset(DataModelMixin):
                 label_sdf.job == features_sdf.jobno,
                 how='left'
             )
-            .drop('jobno', 'job')
+            # .drop('jobno', 'job')
+            .drop('job')
             .repartition(16*4, 'gid')
             .sortWithinPartitions('gid', 'pos_in_list')
         )
@@ -386,7 +421,10 @@ class Dataset(DataModelMixin):
         shutil.rmtree(dataset_spark_path, ignore_errors=True)
         shutil.rmtree(query_spark_path, ignore_errors=True)
 
-        sdf = self.query(spark=spark)
+        sdf = (self.query(spark=spark, populate_if_empty=True)
+               .repartition(16*4, 'gid')
+               .sortWithinPartitions('gid', 'pos_in_list'))
+
         (sdf
          .drop('start_date', 'stop_date', 'features_start_date',
                'features_stop_date', 'date_stop', 'date_start')
@@ -415,6 +453,7 @@ class Model:
     def __init__(self,
                  train_start_date, train_stop_date,
                  train_features_start_date, train_features_stop_date,
+
                  valid_start_date, valid_stop_date,
                  valid_features_start_date, valid_features_stop_date,
                  ):
@@ -466,6 +505,7 @@ class Model:
             f'valid-{self.valid_start_date}').with_suffix('.conf')
 
         conf_path.write_text(train_conf_text)
+        print('config:', conf_path)
 
 
 def concat_files(input_paths, output_path):

@@ -1,10 +1,9 @@
 
 
+from hack104_rec import query_string
 from pyspark.sql import functions as f
 from pyspark.sql.types import (ArrayType, LongType, StringType, StructField,
                                StructType, TimestampType)
-
-from hack104_rec import query_string
 
 from .core import auto_spark, udfy
 from .data import Data, DataFormat, DataModelMixin
@@ -67,9 +66,13 @@ class TrainClickProcessed(DataModelMixin):
     StructType([
         StructField('job', LongType()),
         StructField('rel', LongType()),
+        StructField('action', StringType()),
     ])))
-def zip_job_rel(joblist, rel_list):
-    return [(j, r) for j, r in zip(joblist, rel_list)]
+def zip_job_rel_act(joblist, rel_list, action_list, jobno_list):
+    job_to_act_map = dict(zip(jobno_list, action_list))
+
+    return [(j, r, job_to_act_map.get(j, ''))
+            for j, r in zip(joblist, rel_list)]
 
 
 class TrainClickGrouped(DataModelMixin):
@@ -87,7 +90,9 @@ class TrainClickGrouped(DataModelMixin):
             .withColumn('rel_list',
                         score_relevance.udf(
                             'joblist', 'jobno_list', 'action_list'))
-            .withColumn('job_rel_list', zip_job_rel.udf('joblist', 'rel_list'))
+            .withColumn('job_rel_list',
+                        zip_job_rel_act.udf(
+                            'joblist', 'rel_list', 'action_list', 'jobno_list'))
             .withColumn('gid', f.monotonically_increasing_id())
         )
         cls.write(sdf)
@@ -135,10 +140,11 @@ class TrainClickCTR(DataModelMixin):
             TrainClickExploded.query()
             .withColumn('click', f.col('rel'))
             .groupby('date', 'source', 'action',
-                     'query_params.keyword', 'job_in_list')
+                     'query_params.keyword', 'job')
             .agg(f.count(f.lit(1)).alias('impr'),
                  f.sum('click').alias('click'))
             .withColumn('CTR', f.col('click') / f.col('impr'))
+
             .sort('action', 'impr', 'CTR', ascending=[False, False, False])
         )
         cls.write(sdf)
