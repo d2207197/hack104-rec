@@ -154,156 +154,13 @@ class Features(DataModelMixin):
                    compression='snappy')
 
 
-class TestsetDataset(DataModelMixin):
-    data = Data('testset.pq')
-
-    def __init__(self, start_date, stop_date,
-                 features_start_date=None, features_stop_date=None):
-        # if features_start_date is None and features_stop_date is None:
-        #    features_start_date = start_date
-        #    features_stop_date = stop_date
-        #self.start_date = start_date
-        #self.stop_date = stop_date
-        self.features_start_date = dt.date(2018, 5, 1)
-        self.features_stop_date = dt.date(2018, 5, 31)
-
-#     @auto_spark
-#     def query(self, populate_if_empty=False, spark=None):
-#
-#         error_occured = False
-#         try:
-#             sdf = (
-#                 super().query(spark)
-#                 .filter(
-#                     #(f.col('start_date') == self.start_date) &
-#                     #(f.col('stop_date') == self.stop_date) &
-#                     (f.col('features_start_date') ==
-#                      self.features_start_date) &
-#                     (f.col('features_stop_date') == self.features_stop_date)))
-#         except pyspark.sql.utils.AnalysisException:
-#             error_occured = True
-#
-#         if populate_if_empty and (error_occured or sdf.limit(1).count() == 0):
-#             logger.warning(
-#                 f'Populating {type(self).__name__}'
-#                 f'(start_date={self.start_date!r}, '
-#                 f'stop_date={self.stop_date!r}, '
-#                 f'features_start_date={self.features_start_date!r}, '
-#                 f'features_stop_date={self.features_stop_date!r})'
-#             )
-#
-#             self.populate(spark=spark)
-#             return self.query(populate_if_empty=False)
-#         else:
-#             return sdf
-
-    @auto_spark(('spark.driver.memory', '10g'),
-                ('spark.executor.memory', '10g'))
-    def populate(
-            self,
-            spark=None):
-
-        features_sdf = (
-            Features(self.features_start_date, self.features_stop_date)
-            .query(
-                populate_if_empty=True,
-                spark=spark)
-            .drop('start_date', 'stop_date')
-        )
-
-        label_sdf = (
-            TestsetClickExploded.query(spark=spark)
-            #            .filter(
-            #                (f.col('date') >= self.start_date) &
-            #                (f.col('date') <= self.stop_date))
-            #            .drop('source', 'date', 'datetime')
-            .drop('querystring', 'tokens')
-            .select('*', f.col('query_params.*'))
-            .drop('query_params')
-            .drop('keyword')  # String
-            .drop('area', 'dep', 'edu', 'expcat', 'incat',
-                  'isnew', 'jobcat', 'cat', 'jobexp', 'ro',
-                  'rostatus', 's9', 'wf', 'wt', 'zone')  # List[Int]
-            .fillna(0)
-        )
-
-        trainset_sdf = (
-            label_sdf.join(
-                features_sdf,
-                label_sdf.job == features_sdf.jobno,
-                how='left'
-            )
-            .drop('job')
-            .repartition(16*4, 'gid')
-            .sortWithinPartitions('gid', 'pos_in_list')
-        )
-
-#        trainset_sdf = (
-#            trainset_sdf
-#            .withColumn('start_date', f.lit(self.start_date))
-#            .withColumn('stop_date', f.lit(self.stop_date))
-#            .withColumn('features_start_date', f.lit(self.features_start_date))
-#            .withColumn('features_stop_date', f.lit(self.features_stop_date))
-#        )
-
-        self.write(trainset_sdf,
-                   #                   partitionBy=(
-                   #                                'features_start_date', 'features_stop_date'),
-                   compression='snappy')
-        return
-
-        groups_df = (trainset_sdf
-                     .groupby('gid').count()
-                     .toPandas())
-        trainset_df = trainset_sdf.toPandas()
-
-        return trainset_df, groups_df
-
-    @auto_spark
-    def to_libsvm(self, prefix, spark=None):
-
-        base_path = self.get_base_path(prefix)
-
-        dataset_path = base_path.with_suffix('.txt')
-        dataset_spark_path = base_path.with_suffix('.txt.spark')
-        query_path = base_path.with_suffix('.txt.query')
-        query_spark_path = base_path.with_suffix('.txt.query.spark')
-
-        shutil.rmtree(dataset_spark_path, ignore_errors=True)
-        shutil.rmtree(query_spark_path, ignore_errors=True)
-
-        sdf = self.query(spark=spark)
-        (sdf
-         .drop('start_date', 'stop_date', 'features_start_date',
-               'features_stop_date', 'date_stop', 'date_start')
-         .rdd.map(row_to_libsvm)
-         # .coalesce(1, False)
-         .saveAsTextFile(dataset_spark_path.absolute().as_posix())
-         )
-
-        concat_files(sorted(dataset_spark_path.glob('part-*')), dataset_path)
-
-        (sdf
-         .rdd.mapPartitions(count_group_length)
-         # .coalesce(1, False)
-         .saveAsTextFile(query_spark_path.absolute().as_posix())
-         )
-        concat_files(sorted(query_spark_path.glob('part-*')), query_path)
-
-    def get_base_path(self, prefix):
-        base_path = Path(
-            f'data/{prefix}-'
-            f'{self.features_start_date}_{self.features_stop_date}')
-        return base_path
-
-
 @udfy(return_type=LongType())
 def uuid_to_long(the_uuid):
     return hash(uuid.UUID('b1049129-a9f5-4b59-9258-784d2b1bf5d1').int)
 
 
 class Dataset(DataModelMixin):
-    data = Data('dataset.pq')
+    data = Data('fast/dataset.pq')
 
     def __init__(self, start_date, stop_date,
                  features_start_date=None, features_stop_date=None):
@@ -345,6 +202,15 @@ class Dataset(DataModelMixin):
         else:
             return sdf
 
+    @auto_spark
+    def query_label(self, spark=None):
+        return (
+            TrainClickExploded.query(spark=spark)
+            .filter(
+                (f.col('date') >= self.start_date) &
+                (f.col('date') <= self.stop_date))
+            .drop('source', 'date', 'datetime', 'action'))
+
     @auto_spark(('spark.driver.memory', '10g'),
                 ('spark.executor.memory', '10g'))
     def populate(
@@ -360,13 +226,9 @@ class Dataset(DataModelMixin):
         )
 
         label_sdf = (
-            TrainClickExploded.query(spark=spark)
-            .filter(
-                (f.col('date') >= self.start_date) &
-                (f.col('date') <= self.stop_date))
-            .drop('source', 'date', 'datetime', 'action')
-            .select('*', f.col('query_params.*'))
-            .drop('query_params')
+            self.query_label(spark)
+            .select('*', f.col('query_params.*'), f.col('text_score.*'))
+            .drop('query_params', 'text_score')
             .drop('keyword')  # String
             .drop('area', 'dep', 'edu', 'expcat', 'incat',
                   'isnew', 'jobcat', 'cat', 'jobexp', 'ro',
@@ -381,7 +243,10 @@ class Dataset(DataModelMixin):
                 how='left'
             )
             # .drop('jobno', 'job')
+            .drop('jobno')
+            .select('*', f.col('job').alias('jobno'))
             .drop('job')
+            .withColumnRenamed('jobno', 'job')
             .repartition(16*4, 'gid')
             .sortWithinPartitions('gid', 'pos_in_list')
         )
@@ -400,15 +265,8 @@ class Dataset(DataModelMixin):
                    compression='snappy')
         return
 
-        groups_df = (trainset_sdf
-                     .groupby('gid').count()
-                     .toPandas())
-        trainset_df = trainset_sdf.toPandas()
-
-        return trainset_df, groups_df
-
     @auto_spark
-    def to_libsvm(self, prefix, spark=None):
+    def to_libsvm(self, prefix, with_tag=False, spark=None):
 
         base_path = self.get_base_path(prefix)
 
@@ -427,7 +285,7 @@ class Dataset(DataModelMixin):
         (sdf
          .drop('start_date', 'stop_date', 'features_start_date',
                'features_stop_date', 'date_stop', 'date_start')
-         .rdd.map(row_to_libsvm)
+         .rdd.map(lambda row: row_to_libsvm(row, with_tag=with_tag))
          # .coalesce(1, False)
          .saveAsTextFile(dataset_spark_path.absolute().as_posix())
          )
@@ -448,6 +306,21 @@ class Dataset(DataModelMixin):
         return base_path
 
 
+class TestsetDataset(Dataset):
+    data = Data('testset.pq')
+
+    def __init__(self):
+        super().__init__(
+            dt.date(2018, 5, 1), dt.date(2018, 5, 31),
+            dt.date(2018, 5, 1), dt.date(2018, 5, 31)
+        )
+
+    @auto_spark
+    def query_label(self, spark=None):
+        return (TestsetClickExploded.query(spark=spark)
+                .drop('querystring', 'tokens'))
+
+
 class Model:
     def __init__(self,
                  train_start_date, train_stop_date,
@@ -455,6 +328,7 @@ class Model:
 
                  valid_start_date, valid_stop_date,
                  valid_features_start_date, valid_features_stop_date,
+                 final_model=False
                  ):
         self.train_start_date = train_start_date
         self.train_stop_date = train_stop_date
@@ -477,20 +351,25 @@ class Model:
             features_start_date=valid_features_start_date,
             features_stop_date=valid_features_stop_date,
         )
+        self.final_model = final_model
 
     @auto_spark
-    def build_libSVM_files(self, spark=None):
-        with print_duration():
-            self.validset.to_libsvm('validset')
+    def build_libSVM_files(self, with_tag=False, spark=None):
+        if self.final_model:
+            with print_duration():
+                self.validset.to_libsvm('fast/validset', with_tag=with_tag)
 
         with print_duration():
-            self.trainset.to_libsvm('trainset')
+            self.trainset.to_libsvm('fast/trainset', with_tag=with_tag)
 
     def generate_lightGBM_conf(self):
         train_conf_template = env.get_template('train.conf.j2')
 
-        train_base_path = self.trainset.get_base_path('trainset')
-        valid_base_path = self.validset.get_base_path('validset')
+        train_base_path = self.trainset.get_base_path('fast/trainset')
+        if self.final_model:
+            valid_base_path = train_base_path
+        else:
+            valid_base_path = self.validset.get_base_path('fast/validset')
 
         trainset_path = train_base_path.with_suffix('.txt')
         validset_path = valid_base_path.with_suffix('.txt')
@@ -520,7 +399,7 @@ def count_group_length(rows):
 
 
 @udfy(return_type=StringType())
-def row_to_libsvm(row):
+def row_to_libsvm(row, with_tag=False):
     # return (f'{row["rel"]} gid:{row["gid"]} pos:{row["pos_in_list"]} ' +
     #         ' '.join(f'{i}:{v!r}' for i, v in enumerate(row[3:]) if v != 0))
     features_strs = []
@@ -529,7 +408,10 @@ def row_to_libsvm(row):
             continue
         features_strs.append(f'{i}:{float(v)!r}')
 
-    return (f'{row["rel"]} ' + ' '.join(features_strs) + f' # gid:{row["gid"]} job:{row["job"]}')
+    if with_tag:
+        return (f'{row["rel"]} ' + ' '.join(features_strs) + f' # gid:{row["gid"]} job:{row["job"]}')
+    else:
+        return (f'{row["rel"]} ' + ' '.join(features_strs))
 
 
 def get_y_X(trainset_df):
