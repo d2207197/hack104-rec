@@ -1,14 +1,16 @@
 
 
+from carriage import Stream, Row, X
 from hack104_rec import query_string
 from pyspark.sql import functions as f
 from pyspark.sql.types import (ArrayType, LongType, StringType, StructField,
-                               StructType, TimestampType)
-
+                               StructType, TimestampType, FloatType)
+from elasticsearch_dsl import Search, connections, Q
 from .core import auto_spark, udfy
 from .data import Data, DataFormat, DataModelMixin
 from .metric import ndcg_at_k, score_relevance
 from .misc import tokenize
+from .es.mapping import Job
 
 
 class TrainClick(DataModelMixin):
@@ -83,7 +85,7 @@ class TrainClickGrouped(DataModelMixin):
     def populate(cls, spark=None):
         sdf = (
             TrainClickProcessed.query()
-            .groupby('source', 'date', 'datetime', 'query_params', 'joblist')
+            .groupby('source', 'date', 'datetime', 'query_params', 'joblist', 'tokens')
             .agg(f.collect_list('id').alias('id_list'),
                  f.collect_list('jobno').alias('jobno_list'),
                  f.collect_list('action').alias('action_list'))
@@ -117,6 +119,7 @@ class TrainClickExploded(DataModelMixin):
     def populate(cls, spark=None):
         sdf = (
             TrainClickGrouped.query(spark)
+            .withColumn('text_score', get_tfidf.udf('joblist', 'tokens'))
             .drop('joblist', 'rel_list', 'id_list', 'jobno_list', 'action_list')
             .select('*',
                     f.posexplode('job_rel_list')
@@ -148,3 +151,44 @@ class TrainClickCTR(DataModelMixin):
             .sort('action', 'impr', 'CTR', ascending=[False, False, False])
         )
         cls.write(sdf)
+
+
+@udfy(return_type=ArrayType(
+    StructType(
+        [StructField('jobno', StringType())] + [StructField(field, FloatType()) for field in Job.tfidf_fields]
+    )
+))
+def get_tfidf(joblist, tokens):
+    if not tokens:
+        return [tuple([job] + [0.0 for field in Job.tfidf_fields]) for job in joblist]
+
+    joined_tokens = ' '.join(tokens)
+    joblist = joblist
+
+    q_multi_match = Q('multi_match',
+                  query=joined_tokens,
+                  type='most_fields',
+                  fields=Job.tfidf_fields,
+                  analyzer='whitespace')
+    q_ids = Q('ids', values=joblist)
+    q_overall = Q('bool', must=q_multi_match, filter=q_ids)
+    client = connections.create_connection(hosts=['localhost:9201'], timeout=20)
+
+    search = Search(using=client, index='hack104').query(q_overall).extra(explain=True)
+
+    hits = (h for h in search.execute().hits.hits)
+
+    def ugly_extract_fieldname(description):
+        return description[7:description.find(':')]
+
+    def extract_fields_scores(expl):
+        return (Stream(expl['_explanation']['details'][0]['details'])
+                .map(lambda d: Row(field=ugly_extract_fieldname(d['details'][0]['description']), score=d['value']))
+                .to_map())
+
+    scores_of_job = (Stream(hits)
+     .map(extract_fields_scores)
+    ).to_list()
+
+    return [tuple([job] + [scores.get(field, 0.0) for field in Job.tfidf_fields]) for job, scores in zip(joblist, scores_of_job)]
+

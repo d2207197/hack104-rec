@@ -69,6 +69,8 @@ class Job(Document):
         
         return doc
 
+    tfidf_fields = ['description', 'job', 'others', 'management', 'name', 'product', 'profile', 'welfare']
+
     @classmethod
     def from_dict(cls, obj):
         token_fields = ['description', 'job', 'others', 'management', 'name', 'product', 'profile', 'welfare']
