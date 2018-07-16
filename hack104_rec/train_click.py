@@ -1,16 +1,17 @@
 
 
-from carriage import Stream, Row, X
+from carriage import Row, Stream, X
+from elasticsearch_dsl import Q, Search, connections
 from hack104_rec import query_string
 from pyspark.sql import functions as f
-from pyspark.sql.types import (ArrayType, LongType, StringType, StructField,
-                               StructType, TimestampType, FloatType)
-from elasticsearch_dsl import Search, connections, Q
+from pyspark.sql.types import (ArrayType, FloatType, LongType, StringType,
+                               StructField, StructType, TimestampType)
+
 from .core import auto_spark, udfy
 from .data import Data, DataFormat, DataModelMixin
+from .es.mapping import Job
 from .metric import ndcg_at_k, score_relevance
 from .misc import tokenize
-from .es.mapping import Job
 
 
 class TrainClick(DataModelMixin):
@@ -69,12 +70,18 @@ class TrainClickProcessed(DataModelMixin):
         StructField('job', LongType()),
         StructField('rel', LongType()),
         StructField('action', StringType()),
+        StructField('text_score',
+                    StructType(
+                        [StructField('jobno', StringType())] +
+                        [StructField(field, FloatType())
+                         for field in Job.tfidf_fields]
+                    ))
     ])))
-def zip_job_rel_act(joblist, rel_list, action_list, jobno_list):
+def zip_job_rel_act(joblist, rel_list, action_list, jobno_list, text_score):
     job_to_act_map = dict(zip(jobno_list, action_list))
 
-    return [(j, r, job_to_act_map.get(j, ''))
-            for j, r in zip(joblist, rel_list)]
+    return [(j, r, job_to_act_map.get(j, ''), s)
+            for j, r, s in zip(joblist, rel_list, text_score)]
 
 
 class TrainClickGrouped(DataModelMixin):
@@ -92,9 +99,11 @@ class TrainClickGrouped(DataModelMixin):
             .withColumn('rel_list',
                         score_relevance.udf(
                             'joblist', 'jobno_list', 'action_list'))
+            .withColumn('text_score', get_tfidf.udf('joblist', 'tokens'))
             .withColumn('job_rel_list',
                         zip_job_rel_act.udf(
-                            'joblist', 'rel_list', 'action_list', 'jobno_list'))
+                            'joblist', 'rel_list', 'action_list', 'jobno_list', 'text_score'
+                        ))
             .withColumn('gid', f.monotonically_increasing_id())
         )
         cls.write(sdf)
@@ -119,7 +128,6 @@ class TrainClickExploded(DataModelMixin):
     def populate(cls, spark=None):
         sdf = (
             TrainClickGrouped.query(spark)
-            .withColumn('text_score', get_tfidf.udf('joblist', 'tokens'))
             .drop('joblist', 'rel_list', 'id_list', 'jobno_list', 'action_list')
             .select('*',
                     f.posexplode('job_rel_list')
@@ -155,7 +163,8 @@ class TrainClickCTR(DataModelMixin):
 
 @udfy(return_type=ArrayType(
     StructType(
-        [StructField('jobno', StringType())] + [StructField(field, FloatType()) for field in Job.tfidf_fields]
+        [StructField('jobno', StringType())] + [StructField(field,
+                                                            FloatType()) for field in Job.tfidf_fields]
     )
 ))
 def get_tfidf(joblist, tokens):
@@ -166,15 +175,17 @@ def get_tfidf(joblist, tokens):
     joblist = joblist
 
     q_multi_match = Q('multi_match',
-                  query=joined_tokens,
-                  type='most_fields',
-                  fields=Job.tfidf_fields,
-                  analyzer='whitespace')
+                      query=joined_tokens,
+                      type='most_fields',
+                      fields=Job.tfidf_fields,
+                      analyzer='whitespace')
     q_ids = Q('ids', values=joblist)
     q_overall = Q('bool', must=q_multi_match, filter=q_ids)
-    client = connections.create_connection(hosts=['localhost:9201'], timeout=20)
+    client = connections.create_connection(
+        hosts=['localhost:9201'], timeout=20)
 
-    search = Search(using=client, index='hack104').query(q_overall).extra(explain=True)
+    search = Search(using=client, index='hack104').query(
+        q_overall).extra(explain=True)
 
     hits = (h for h in search.execute().hits.hits)
 
@@ -187,8 +198,7 @@ def get_tfidf(joblist, tokens):
                 .to_map())
 
     scores_of_job = (Stream(hits)
-     .map(extract_fields_scores)
-    ).to_list()
+                     .map(extract_fields_scores)
+                     ).to_list()
 
     return [tuple([job] + [scores.get(field, 0.0) for field in Job.tfidf_fields]) for job, scores in zip(joblist, scores_of_job)]
-
