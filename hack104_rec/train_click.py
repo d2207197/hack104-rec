@@ -128,7 +128,7 @@ class TrainClickExploded(DataModelMixin):
     def populate(cls, spark=None):
         sdf = (
             TrainClickGrouped.query(spark)
-            .drop('joblist', 'rel_list', 'id_list', 'jobno_list', 'action_list')
+            .drop('joblist', 'rel_list', 'id_list', 'jobno_list', 'action_list', 'text_score')
             .select('*',
                     f.posexplode('job_rel_list')
                     .alias('pos_in_list', 'job_rel_in_list'))
