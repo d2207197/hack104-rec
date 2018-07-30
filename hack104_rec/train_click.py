@@ -11,6 +11,7 @@ from .core import auto_spark, udfy
 from .data import Data, DataFormat, DataModelMixin
 from .es.mapping import Job
 from .metric import ndcg_at_k, score_relevance
+from .utils import simple_clean
 from .misc import tokenize
 
 
@@ -92,6 +93,7 @@ class TrainClickGrouped(DataModelMixin):
     def populate(cls, spark=None):
         sdf = (
             TrainClickProcessed.query()
+            # .limit(10)
             .groupby('source', 'date', 'datetime', 'query_params', 'joblist', 'tokens')
             .agg(f.collect_list('id').alias('id_list'),
                  f.collect_list('jobno').alias('jobno_list'),
@@ -168,11 +170,12 @@ class TrainClickCTR(DataModelMixin):
     )
 ))
 def get_tfidf(joblist, tokens):
+    default_scores = [0.0 for field in Job.tfidf_fields]
     if not tokens:
-        return [tuple([job] + [0.0 for field in Job.tfidf_fields]) for job in joblist]
+        return [tuple([job] + default_scores) for job in joblist]
 
-    joined_tokens = ' '.join(tokens)
-    joblist = joblist
+    joined_tokens = simple_clean(' '.join(tokens))
+    joblist = [str(job) for job in joblist]
 
     q_multi_match = Q('multi_match',
                       query=joined_tokens,
@@ -192,13 +195,24 @@ def get_tfidf(joblist, tokens):
     def ugly_extract_fieldname(description):
         return description[7:description.find(':')]
 
+    def normalize_explain_struct(expl):
+        d = expl['_explanation']['details'][0]
+        return [d] if d['details'][0]['description'].startswith('weight') else d['details']
+
     def extract_fields_scores(expl):
-        return (Stream(expl['_explanation']['details'][0]['details'])
-                .map(lambda d: Row(field=ugly_extract_fieldname(d['details'][0]['description']), score=d['value']))
-                .to_map())
+        nd = normalize_explain_struct(expl)
+        return Row(_id=expl['_id'],
+                   values=(Stream(nd)
+                           .map(lambda d: Row(field=ugly_extract_fieldname(d['details'][0]['description']), score=d['value']))
+                           .to_map()
+                          ).to_dict())
 
     scores_of_job = (Stream(hits)
                      .map(extract_fields_scores)
-                     ).to_list()
+                     ).to_map()
+    return [tuple([job] 
+                  + ([scores_of_job.get(job).get(field, 0.0) for field in Job.tfidf_fields]
+                           if job in scores_of_job
+                           else default_scores))
+            for job in joblist]
 
-    return [tuple([job] + [scores.get(field, 0.0) for field in Job.tfidf_fields]) for job, scores in zip(joblist, scores_of_job)]
